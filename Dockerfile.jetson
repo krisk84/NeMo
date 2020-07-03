@@ -35,6 +35,9 @@ ENV LLVM_CONFIG=/usr/bin/llvm-config-7
 ENV MPLLOCALFREETYPE=1
 ENV LD_LIBRARY_PATH=/usr/local/cuda/targets/aarch64-linux/lib:${LD_LIBRARY_PATH}
 
+# Parallel make by default
+ENV MAKEFLAGS="-j8"
+
 WORKDIR /tmp/nemo
 
 RUN apt-get update && apt-get install -y \
@@ -71,7 +74,10 @@ parallel \
 python3-distutils \
 python3-pip \
 libhdf5-serial-dev hdf5-tools libhdf5-dev \
-libprotobuf-dev protobuf-compiler libopenblas-dev gfortran
+libprotobuf-dev protobuf-compiler libopenblas-dev gfortran psmisc
+
+# Destroy snapd
+RUN killall snapd; apt-get remove --purge snapd
 
 #Install PyTorch 1.5
 RUN wget https://nvidia.box.com/shared/static/3ibazbiwtkl181n95n9em3wtrca7tdzp.whl -O torch-1.5.0-cp36-cp36m-linux_aarch64.whl
@@ -88,13 +94,16 @@ RUN apt-get install -y git cmake libjpeg-dev zlib1g-dev
 
 RUN apt-get install -y cmake build-essential pkg-config libgoogle-perftools-dev
 RUN git clone -b v0.1.85 https://github.com/google/sentencepiece/ sentencepiece-0.1.85
-RUN cd sentencepiece-0.1.85 && mkdir build && cd build && cmake .. && make -j $(nproc) && make install && ldconfig -v && \
+RUN cd sentencepiece-0.1.85 && mkdir build && cd build && cmake .. && make && make install && ldconfig -v && \
     cd ../python && python3 setup.py bdist_wheel && cd dist && pip3 install sentencepiece-0.1.85-cp36-cp36m-linux_aarch64.whl --verbose
 
 # Install latest 2019 tbb
 RUN git clone -b tbb_2019 https://github.com/oneapi-src/oneTBB.git libtbb2 && cd libtbb2 && \ 
     python build/build.py --prefix=/usr/local --install-libs --install-devel
 RUN ldconfig -v
+
+# Ninja
+RUN pip3 install ninja
 
 # Nvidia apex
 RUN git clone https://github.com/NVIDIA/apex && cd apex && \
