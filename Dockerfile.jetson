@@ -94,13 +94,13 @@ RUN apt-get install -y git cmake libjpeg-dev zlib1g-dev
 
 RUN apt-get install -y cmake build-essential pkg-config libgoogle-perftools-dev
 RUN git clone -b v0.1.85 https://github.com/google/sentencepiece/ sentencepiece-0.1.85
-RUN cd sentencepiece-0.1.85 && mkdir build && cd build && cmake .. && make && make install && ldconfig -v && \
+RUN cd sentencepiece-0.1.85 && mkdir build && cd build && cmake .. && make && make install && ldconfig && \
     cd ../python && python3 setup.py bdist_wheel && cd dist && pip3 install sentencepiece-0.1.85-cp36-cp36m-linux_aarch64.whl --verbose
 
 # Install latest 2019 tbb
 RUN git clone -b tbb_2019 https://github.com/oneapi-src/oneTBB.git libtbb2 && cd libtbb2 && \ 
     python build/build.py --prefix=/usr/local --install-libs --install-devel
-RUN ldconfig -v
+RUN ldconfig
 
 # Ninja
 RUN pip3 install ninja
