@@ -45,7 +45,6 @@ try:
     HAVE_TORCHAUDIO = True
 except ModuleNotFoundError:
     HAVE_TORCHAUDIO = False
-    warnings.warn('Could not import torchaudio. Some features might not work.')
 try:
     from apex import amp
 except (AttributeError, ModuleNotFoundError) as e:
