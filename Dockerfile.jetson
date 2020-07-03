@@ -96,6 +96,11 @@ RUN git clone -b tbb_2019 https://github.com/oneapi-src/oneTBB.git libtbb2 && cd
     python build/build.py --prefix=/usr/local --install-libs --install-devel
 RUN ldconfig -v
 
+# Nvidia apex
+RUN git clone https://github.com/NVIDIA/apex && cd apex && \
+    pip3 install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
+RUN ldconfig
+
 # install nemo dependencies
 WORKDIR /tmp/nemo
 
