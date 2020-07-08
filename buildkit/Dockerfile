@@ -255,3 +255,45 @@ RUN --mount=type=cache,target=/ccache/ ccache -s
 RUN printf "#!/bin/bash\njupyter lab --no-browser --allow-root --ip=0.0.0.0" >> start-jupyter.sh && \
 chmod +x start-jupyter.sh
 
+FROM nemo as decoders
+
+RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/apt apt-get install -y swig \
+    pkg-config libflac-dev libogg-dev libvorbis-dev libboost-dev \
+    libsndfile1-dev python3-setuptools libboost-all-dev python3-dev \
+    cmake libeigen3-dev
+
+WORKDIR /workspace/nemo/scripts
+
+RUN git clone https://github.com/PaddlePaddle/DeepSpeech && cd DeepSpeech && git checkout a76fc69
+
+RUN mv DeepSpeech/decoders/swig_wrapper.py DeepSpeech/decoders/swig/ctc_decoders.py
+RUN mv DeepSpeech/decoders/swig ./decoders
+
+RUN rm -rf DeepSpeech
+
+WORKDIR /workspace/nemo/scripts/decoders
+
+RUN sed -i "s/\.decode('utf-8')//g" ctc_decoders.py
+RUN sed -i 's/\.decode("utf-8")//g' ctc_decoders.py
+RUN sed -i "s/name='swig_decoders'/name='ctc_decoders'/g" setup.py
+RUN sed -i "s/-space_prefixes\[i\]->approx_ctc/space_prefixes\[i\]->score/g" decoder_utils.cpp
+RUN sed -i "s/py_modules=\['swig_decoders'\]/py_modules=\['ctc_decoders', 'swig_decoders'\]/g" setup.py
+
+RUN git clone https://github.com/kpu/kenlm
+
+RUN sed -i "s/python/python3/g" setup.sh && chmod +x setup.sh
+RUN --mount=type=cache,target=/ccache/ ./setup.sh
+
+FROM decoders as kenlm
+
+WORKDIR /workspace/nemo/scripts/decoders/kenlm
+
+RUN --mount=type=cache,target=/ccache/ mkdir build && cd build && cmake ..
+
+WORKDIR /workspace/nemo/scripts/decoders/kenlm/build
+
+RUN --mount=type=cache,target=/ccache/ make
+
+RUN --mount=type=cache,target=/ccache/ ccache -s
+
+WORKDIR /workspace/nemo
